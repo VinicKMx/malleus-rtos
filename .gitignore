@@ -1,0 +1,23 @@
+/target
+**/target
+Cargo.lock.bak
+*.rs.bk
+*.bin
+*.hex
+*.elf
+*.map
+*.core
+
+# mdBook output
+/docs/book/book
+
+# Local, machine-specific tooling config
+.vscode/
+.idea/
+*.swp
+.DS_Store
+/.env
+
+# Generated artifacts from `cargo malleus analyze` / `trace`
+/artifacts
+*.malleus-trace
