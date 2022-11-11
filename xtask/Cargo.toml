@@ -1,0 +1,17 @@
+[package]
+name = "xtask"
+description = "Repository automation for Malleus RTOS — run `cargo xtask`"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true }
