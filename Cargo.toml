@@ -1,6 +1,7 @@
 [workspace]
 resolver = "3"
 members = [
+    "crates/malleus-arch",
     "xtask",
 ]
 
@@ -22,6 +23,8 @@ keywords = ["rtos", "embedded", "no-std", "real-time", "cortex-m"]
 categories = ["embedded", "no-std", "os"]
 
 [workspace.dependencies]
+malleus-arch = { version = "0.0.0", path = "crates/malleus-arch" }
+
 # Host-side tooling dependencies.
 anyhow = "1.0"
 clap = { version = "4.5", features = ["derive"] }
