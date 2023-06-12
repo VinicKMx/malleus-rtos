@@ -2,6 +2,7 @@
 resolver = "3"
 members = [
     "crates/malleus-arch",
+    "crates/malleus-manifest",
     "crates/malleusrt",
     "xtask",
 ]
@@ -25,6 +26,7 @@ categories = ["embedded", "no-std", "os"]
 
 [workspace.dependencies]
 malleus-arch = { version = "0.0.0", path = "crates/malleus-arch" }
+malleus-manifest = { version = "0.0.0", path = "crates/malleus-manifest" }
 malleusrt = { version = "0.0.0", path = "crates/malleusrt" }
 
 # Host-side tooling dependencies.
