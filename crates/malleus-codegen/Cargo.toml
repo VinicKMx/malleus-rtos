@@ -1,0 +1,18 @@
+[package]
+name = "malleus-codegen"
+description = "Generates the task table, IPC endpoints, and linker layout from a Malleus manifest"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+malleus-manifest = { workspace = true }
+anyhow = { workspace = true }

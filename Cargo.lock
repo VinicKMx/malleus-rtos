@@ -161,6 +161,21 @@ name = "malleus-arch"
 version = "0.0.0"
 
 [[package]]
+name = "malleus-arch-cortex-m"
+version = "0.0.0"
+dependencies = [
+ "malleus-arch",
+]
+
+[[package]]
+name = "malleus-codegen"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "malleus-manifest",
+]
+
+[[package]]
 name = "malleus-manifest"
 version = "0.0.0"
 dependencies = [
@@ -168,6 +183,18 @@ dependencies = [
  "thiserror",
  "toml",
 ]
+
+[[package]]
+name = "malleus-runtime"
+version = "0.0.0"
+dependencies = [
+ "malleus-arch",
+ "malleusrt",
+]
+
+[[package]]
+name = "malleus-trace"
+version = "0.0.0"
 
 [[package]]
 name = "malleusrt"

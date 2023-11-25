@@ -1,0 +1,17 @@
+[package]
+name = "malleus-trace"
+description = "Wire format for Malleus RTOS trace streams and crash dumps"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+

@@ -1,0 +1,23 @@
+[package]
+name = "malleus-arch-cortex-m"
+description = "ARM Cortex-M port of the Malleus RTOS architecture layer"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+malleus-arch = { workspace = true }
+
+[features]
+default = []
+cortex-m7 = []
+cortex-m33 = []
+cortex-m4 = []
