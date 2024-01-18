@@ -1,0 +1,80 @@
+# The flagship reference system: a connected industrial controller.
+#
+# One firmware image running a 1 kHz motor control loop, DMA sensor
+# acquisition, Modbus RTU, and MQTT telemetry — with the network stack isolated
+# behind the MPU so that killing it does not perturb the control loop.
+#
+# See docs/reference-apps/industrial-controller.md.
+
+[system]
+name      = "industrial-controller"
+board     = "nucleo-f767zi"
+tick_rate = "1MHz"
+
+# --- Hard real-time: preemptive tasks, never restarted -----------------------
+
+[[task]]
+name     = "safety-monitor"
+priority = 9
+period   = "500us"
+deadline = "200us"
+wcet     = "40us"
+stack    = "1KiB"
+# Deliberately holds no IPC capability. The safety monitor acts directly on the
+# hardware it is responsible for and depends on no other task to do its job —
+# an emergency stop that has to wait in a queue is not an emergency stop.
+capabilities = ["gpio.estop", "pwm.motor"]
+
+[[task]]
+name     = "motor-control"
+priority = 7
+period   = "1ms"
+deadline = "500us"
+wcet     = "180us"
+stack    = "2KiB"
+capabilities = ["timer.control", "spi.encoder", "pwm.motor", "ipc.motor-command"]
+
+[[task]]
+name     = "sensor-acquisition"
+priority = 6
+period   = "2ms"
+deadline = "2ms"
+wcet     = "300us"
+stack    = "2KiB"
+capabilities = ["adc.dma", "ipc.sensor-data"]
+
+# --- Services: restartable, isolated ----------------------------------------
+
+[[task]]
+name     = "modbus"
+priority = 4
+period   = "10ms"
+deadline = "10ms"
+wcet     = "900us"
+stack    = "4KiB"
+capabilities = ["uart.rs485", "ipc.motor-command"]
+
+[[task]]
+name     = "telemetry"
+priority = 2
+period   = "100ms"
+deadline = "100ms"
+wcet     = "8ms"
+stack    = "8KiB"
+capabilities = ["net.mqtt", "ipc.sensor-data"]
+
+# --- Channels ---------------------------------------------------------------
+
+[[channel]]
+name     = "sensor-data"
+from     = "sensor-acquisition"
+to       = "telemetry"
+capacity = 16
+overflow = "drop-oldest"
+
+[[channel]]
+name     = "motor-command"
+from     = "modbus"
+to       = "motor-control"
+capacity = 4
+overflow = "reject"
