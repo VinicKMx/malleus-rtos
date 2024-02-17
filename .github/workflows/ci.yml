@@ -1,0 +1,130 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The whole pipeline is `cargo xtask ci`, so a contributor's laptop runs
+  # exactly what CI runs. A pipeline that diverges from the local command trains
+  # everyone to push and hope. The jobs below split it only for readable
+  # failure reporting — the steps are the same ones.
+  check:
+    name: fmt · clippy · test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          # rust-toolchain.toml pins the version; this action honours it.
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Formatting
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+      - name: Tests
+        run: cargo test --workspace --all-features
+
+      - name: Documentation builds without warnings
+        run: cargo doc --workspace --no-deps --all-features
+        env:
+          RUSTDOCFLAGS: -D warnings
+
+  cross:
+    name: cross-compile ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - thumbv7em-none-eabihf    # Cortex-M4F / M7 — Nucleo-F767ZI
+          - thumbv8m.main-none-eabihf # Cortex-M33
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+
+      # The kernel is portable no_std and compiles for the host, which is what
+      # makes the host test suite possible. That is not evidence it compiles
+      # for a Cortex-M, and the gap is exactly where portability bugs live.
+      - name: Build bare-metal crates
+        run: |
+          cargo build --target ${{ matrix.target }} \
+            --package malleusrt \
+            --package malleus-arch \
+            --package malleus-arch-cortex-m \
+            --package malleus-runtime
+
+  msrv:
+    name: MSRV
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      # An MSRV that is not tested is a guess. See ADR-0011.
+      - name: Read MSRV from Cargo.toml
+        id: msrv
+        run: |
+          version=$(grep -m1 '^rust-version' Cargo.toml | cut -d'"' -f2)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Declared MSRV: $version"
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.msrv.outputs.version }}
+      - uses: Swatinem/rust-cache@v2
+      - name: Build at MSRV
+        run: cargo build --workspace --all-features
+
+  reference-apps:
+    name: reference applications validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build the tool
+        run: cargo build --package cargo-malleus
+
+      # Every reference manifest in the repository must validate and be
+      # schedulable. These are documentation that is compiled — if a manifest
+      # in docs/ stops holding, the document has become fiction.
+      - name: Check and analyse every reference manifest
+        run: |
+          status=0
+          for manifest in examples/*/malleus.toml; do
+            echo "::group::$manifest"
+            ./target/debug/cargo-malleus malleus check   --manifest "$manifest" || status=1
+            ./target/debug/cargo-malleus malleus analyze --manifest "$manifest" || status=1
+            echo "::endgroup::"
+          done
+          exit $status
+
+  unsafe-audit:
+    name: unsafe code audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      # `undocumented_unsafe_blocks` is denied in [workspace.lints.clippy], so
+      # the clippy job is the real enforcement. This job produces the inventory
+      # artefact described in ADR-0010 and fails if unsafe appears outside the
+      # crates permitted to have it.
+      - name: Unsafe appears only where it is permitted
+        run: ./ci/check-unsafe.sh
