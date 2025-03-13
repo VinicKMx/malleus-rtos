@@ -26,7 +26,6 @@ rust-version = "1.90"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/VinicKMx/malleus-rtos"
 homepage = "https://github.com/VinicKMx/malleus-rtos"
-authors = ["The Malleus RTOS Developers"]
 keywords = ["rtos", "embedded", "no-std", "real-time", "cortex-m"]
 categories = ["embedded", "no-std", "os"]
 
