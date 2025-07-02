@@ -220,6 +220,33 @@ impl Manifest {
     fn check_timing(&self, report: &mut ValidationReport) {
         let tick_hz = parse_tick_hz(&self.system.tick_rate);
 
+        // An unusable tick rate is reported, never silently skipped. Every
+        // timing check below is expressed in ticks, so a rate the tool cannot
+        // interpret means those checks did not run — and a manifest that was
+        // not checked must not be reported as clean.
+        match tick_hz {
+            None => report.push(
+                Severity::Error,
+                "M0024",
+                "[system]",
+                format!(
+                    "tick rate `{}` is not a frequency this tool can interpret, so no \
+                     timing check could be performed",
+                    self.system.tick_rate
+                ),
+                "write the rate as a whole number followed by `Hz`, `kHz`, or `MHz`, for \
+                 example `1MHz`",
+            ),
+            Some(0) => report.push(
+                Severity::Error,
+                "M0025",
+                "[system]",
+                "tick rate is zero; a clock that never advances cannot schedule anything",
+                "declare the board's real monotonic timer frequency, for example `1MHz`",
+            ),
+            Some(_) => {}
+        }
+
         for task in &self.tasks {
             let period = parse_duration(task.period.as_deref(), &task.name, "period", report);
             let deadline = parse_duration(task.deadline.as_deref(), &task.name, "deadline", report);
@@ -269,6 +296,7 @@ impl Manifest {
             }
 
             if let (Some(period), Some(hz)) = (period, tick_hz)
+                && hz > 0
                 && !period.is_tick_aligned(hz)
             {
                 report.push(
@@ -588,6 +616,54 @@ mod tests {
         );
         let report = m.validate();
         assert!(report.is_ok(), "unexpected errors: {report}");
+    }
+
+    /// A tick rate the tool cannot interpret must be an error, not a silent
+    /// skip. Before this check existed, an unparseable rate disabled every
+    /// tick-alignment check and the manifest was reported as having no
+    /// findings — the tool claiming a clean bill of health for something it
+    /// never examined.
+    #[test]
+    fn an_unparseable_tick_rate_is_an_error() {
+        let source = concat!(
+            "[system]\nname = \"t\"\nboard = \"nucleo-f767zi\"\n",
+            "tick_rate = \"99999999999999999999MHz\"\n",
+            "[[task]]\nname = \"control\"\npriority = 7\nstack = \"2KiB\"\n",
+            "period = \"1ms\"\nwcet = \"100us\"\n"
+        );
+        let m = Manifest::parse(source).expect("manifest must parse");
+        let report = m.validate();
+        assert!(
+            codes(&report).contains(&"M0024"),
+            "expected M0024: {report}"
+        );
+        assert!(
+            !report.is_ok(),
+            "an uninterpretable tick rate must stop the build"
+        );
+    }
+
+    #[test]
+    fn a_zero_tick_rate_is_an_error() {
+        let source = concat!(
+            "[system]\nname = \"t\"\nboard = \"nucleo-f767zi\"\ntick_rate = \"0Hz\"\n",
+            "[[task]]\nname = \"control\"\npriority = 7\nstack = \"2KiB\"\n",
+            "period = \"1ms\"\nwcet = \"100us\"\n"
+        );
+        let m = Manifest::parse(source).expect("manifest must parse");
+        let report = m.validate();
+        assert!(
+            codes(&report).contains(&"M0025"),
+            "expected M0025: {report}"
+        );
+        assert!(!report.is_ok(), "a zero tick rate must stop the build");
+        // M0009 compares the period against the tick period. Against a zero
+        // rate that comparison is meaningless, and printing it would bury the
+        // real diagnostic under a nonsense one.
+        assert!(
+            !codes(&report).contains(&"M0009"),
+            "a zero tick rate must not also produce a tick-alignment warning: {report}"
+        );
     }
 
     #[test]
