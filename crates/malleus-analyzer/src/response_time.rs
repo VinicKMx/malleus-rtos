@@ -136,11 +136,18 @@ pub fn analyse(tasks: &[TaskTiming]) -> Analysis {
     let mut utilisation_ppm: u64 = 0;
 
     for task in tasks {
-        if let (Some(period), Some(wcet)) = (task.period, task.wcet)
-            && period > 0
-        {
-            utilisation_ppm =
-                utilisation_ppm.saturating_add(wcet.saturating_mul(1_000_000) / period);
+        match (task.period, task.wcet) {
+            // A zero period is unbounded demand, not absent demand. Skipping it
+            // reported a comfortable figure for a task set that cannot run at
+            // all; saturating makes the impossibility visible in the number.
+            // The manifest validator rejects this upstream (M0026), so reaching
+            // it means the analyser was driven directly as a library.
+            (Some(0), Some(_)) => utilisation_ppm = u64::MAX,
+            (Some(period), Some(wcet)) => {
+                utilisation_ppm =
+                    utilisation_ppm.saturating_add(wcet.saturating_mul(1_000_000) / period);
+            }
+            _ => {}
         }
         verdicts.push((task.name.clone(), verdict_for(task, tasks)));
     }
@@ -180,7 +187,14 @@ fn verdict_for(task: &TaskTiming, all: &[TaskTiming]) -> Verdict {
             continue;
         }
         match (other.period, other.wcet) {
-            (Some(period), Some(wcet)) if period > 0 => interferers.push((period, wcet)),
+            (Some(0), _) => {
+                return Verdict::Unknown {
+                    reason: "a higher-priority task declares a zero period, so it demands the \
+                             CPU without bound and the interference on this task cannot be \
+                             computed",
+                };
+            }
+            (Some(period), Some(wcet)) => interferers.push((period, wcet)),
             _ => {
                 return Verdict::Unknown {
                     reason: "a higher-priority task has no declared period or WCET, so the \
@@ -227,15 +241,95 @@ fn verdict_for(task: &TaskTiming, all: &[TaskTiming]) -> Verdict {
         response = next;
     }
 
-    Verdict::Fail {
-        response,
-        overrun: response.saturating_sub(deadline),
+    // Falling out of the loop means the recurrence neither converged nor passed
+    // the deadline within the bound. Reporting `Fail` here published whatever
+    // value the iteration happened to stop on as though it were a computed
+    // worst case. No worst-case response time was established, so the honest
+    // answer is that it is unknown.
+    Verdict::Unknown {
+        reason: "the response-time recurrence did not converge within the iteration bound, \
+                 so no worst-case response time was established for this task",
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The iteration bound exists so the tool terminates. It used to terminate
+    /// by publishing whatever value the loop stopped on as a computed `Fail`,
+    /// which is a fabricated worst case. Not converging is a statement about
+    /// the analysis, not about the task.
+    #[test]
+    fn non_convergence_is_unknown_not_a_fabricated_failure() {
+        // A 100%-utilisation interferer (T = C = 1) makes the recurrence grow
+        // by exactly one tick per iteration, so a deadline far above the
+        // iteration bound exhausts the loop without ever crossing it.
+        let tasks = vec![
+            task("interferer", 9, 1, 1, 1),
+            task("victim", 1, 100_000, 100_000, 1),
+        ];
+        let analysis = analyse(&tasks);
+        let (_, verdict) = analysis
+            .verdicts
+            .iter()
+            .find(|(n, _)| n == "victim")
+            .expect("victim is analysed");
+        match verdict {
+            Verdict::Unknown { reason } => {
+                assert!(
+                    reason.contains("converge"),
+                    "reason must name non-convergence, got: {reason}"
+                );
+            }
+            other => panic!("expected Unknown for a non-converging recurrence, got {other:?}"),
+        }
+    }
+
+    /// The reason string is the whole value of an `UNKNOWN`. Blaming a missing
+    /// declaration for a task that declared both period and WCET sends the
+    /// engineer to fix something that is not wrong.
+    #[test]
+    fn a_zero_period_interferer_is_named_accurately() {
+        let mut interferer = task("interferer", 9, 0, 100, 10);
+        interferer.period = Some(0);
+        let tasks = vec![interferer, task("victim", 1, 1000, 1000, 10)];
+        let analysis = analyse(&tasks);
+        let (_, verdict) = analysis
+            .verdicts
+            .iter()
+            .find(|(n, _)| n == "victim")
+            .expect("victim is analysed");
+        match verdict {
+            Verdict::Unknown { reason } => {
+                assert!(
+                    reason.contains("zero period"),
+                    "reason must name the zero period, got: {reason}"
+                );
+                assert!(
+                    !reason.contains("no declared period or WCET"),
+                    "must not claim a missing declaration that is present: {reason}"
+                );
+            }
+            other => panic!("expected Unknown, got {other:?}"),
+        }
+    }
+
+    /// A zero period is unbounded demand. Dropping it from the sum reported a
+    /// comfortable utilisation for a task set that cannot run.
+    #[test]
+    fn a_zero_period_task_does_not_vanish_from_utilisation() {
+        let tasks = vec![
+            task("greedy", 5, 0, 100, 50),
+            task("other", 3, 1000, 1000, 100),
+        ];
+        let analysis = analyse(&tasks);
+        assert_eq!(
+            analysis.utilisation_ppm,
+            u64::MAX,
+            "unbounded demand must not be reported as 10% CPU"
+        );
+    }
 
     fn task(name: &str, priority: u8, period: u64, deadline: u64, wcet: u64) -> TaskTiming {
         TaskTiming {
