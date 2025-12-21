@@ -108,7 +108,16 @@ impl Period {
                 Some(periods) => periods.saturating_add(1),
                 None => 1,
             };
-            self.missed = self.missed.saturating_add(skipped as u32);
+            // Saturate the width conversion rather than casting it. `skipped`
+            // is a `u64`; `as u32` keeps only the low word, so an overrun of
+            // exactly 2^32 activations reported *zero* missed — the counter
+            // silently reading healthy at the precise moment it matters most.
+            let skipped_count = if skipped > u32::MAX as u64 {
+                u32::MAX
+            } else {
+                skipped as u32
+            };
+            self.missed = self.missed.saturating_add(skipped_count);
             self.next = self
                 .next
                 .saturating_add_ticks(skipped.saturating_mul(self.interval));
@@ -164,6 +173,22 @@ mod tests {
             "next activation must be in the future"
         );
         assert_eq!(period.missed_activations(), 1);
+    }
+
+    /// The counter must saturate, never wrap. `skipped as u32` discarded the
+    /// high word, so an overrun of exactly 2^32 activations reported zero
+    /// misses — the one reading that would stop anyone investigating.
+    #[test]
+    fn a_huge_overrun_saturates_the_miss_counter_instead_of_wrapping() {
+        let mut period = Period::starting_at(Instant::ZERO, 1);
+        // Chosen so the skip count is an exact multiple of 2^32, whose low
+        // word is zero.
+        period.advance(Instant::from_ticks((1u64 << 32) + 2));
+        assert_eq!(
+            period.missed_activations(),
+            u32::MAX,
+            "a four-billion-activation overrun must saturate, not wrap to a small number"
+        );
     }
 
     #[test]
