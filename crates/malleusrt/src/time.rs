@@ -101,12 +101,22 @@ impl Period {
         self.next = self.next.saturating_add_ticks(self.interval);
         if now.as_ticks() > self.next.as_ticks() {
             let behind = now.saturating_since(self.next);
-            // `checked_div` rather than `/`: a zero interval is a degenerate
-            // configuration the manifest validator rejects, but the kernel
-            // still must not divide by it at runtime.
-            let skipped = match behind.checked_div(self.interval) {
-                Some(periods) => periods.saturating_add(1),
-                None => 1,
+            // Round *up*: we need the smallest whole number of periods that
+            // carries `next` to at least `now`. The previous
+            // `floor(behind / interval) + 1` added a period that was already
+            // accounted for whenever `behind` was an exact multiple, so a task
+            // finishing precisely on a grid point was charged one phantom miss
+            // and lost a real activation slot. `now` exactly on an activation
+            // instant means that activation is due, not missed — the same rule
+            // the `now == next` path above already applies.
+            //
+            // A zero interval is rejected by the manifest validator (M0026),
+            // but `div_ceil` panics on a zero divisor, so the kernel still
+            // guards it rather than trusting an upstream check at runtime.
+            let skipped = if self.interval == 0 {
+                1
+            } else {
+                behind.div_ceil(self.interval)
             };
             // Saturate the width conversion rather than casting it. `skipped`
             // is a `u64`; `as u32` keeps only the low word, so an overrun of
@@ -191,6 +201,42 @@ mod tests {
         );
     }
 
+    /// Finishing exactly on an activation instant must be treated the same way
+    /// whether the task is on time or several periods late. The old
+    /// `floor + 1` charged a phantom miss and skipped a real activation slot
+    /// at every exact grid point, so `missed` drifted upward on precisely the
+    /// tick-aligned periods the validator encourages.
+    #[test]
+    fn an_overrun_landing_on_the_grid_is_not_charged_a_phantom_miss() {
+        // On time, finishing exactly at the next activation: due now.
+        let mut on_time = Period::starting_at(Instant::ZERO, 10);
+        assert_eq!(on_time.advance(Instant::from_ticks(20)).as_ticks(), 20);
+        assert_eq!(on_time.missed_activations(), 0);
+
+        // One full period late, again exactly on the grid. Activation 20 was
+        // missed; activation 30 is due now, not missed as well.
+        let mut late = Period::starting_at(Instant::ZERO, 10);
+        assert_eq!(late.advance(Instant::from_ticks(30)).as_ticks(), 30);
+        assert_eq!(
+            late.missed_activations(),
+            1,
+            "the activation due at `now` must not be counted as missed"
+        );
+
+        // Two full periods late.
+        let mut later = Period::starting_at(Instant::ZERO, 10);
+        assert_eq!(later.advance(Instant::from_ticks(40)).as_ticks(), 40);
+        assert_eq!(later.missed_activations(), 2);
+    }
+
+    /// Just past a grid point is a genuine miss, and must stay one.
+    #[test]
+    fn an_overrun_just_past_the_grid_still_counts() {
+        let mut period = Period::starting_at(Instant::ZERO, 10);
+        assert_eq!(period.advance(Instant::from_ticks(21)).as_ticks(), 30);
+        assert_eq!(period.missed_activations(), 1);
+    }
+
     #[test]
     fn catch_up_is_arithmetic_not_iterative() {
         // A one-million-period overrun must resolve in constant time and land
@@ -198,7 +244,10 @@ mod tests {
         let mut period = Period::starting_at(Instant::ZERO, 10);
         let now = Instant::from_ticks(10_000_000);
         let next = period.advance(now);
-        assert!(next.as_ticks() > now.as_ticks());
+        // `>=`, not `>`: 10_000_000 is itself on the activation grid, so the
+        // correct answer is "due now", not "due one period from now". The
+        // requirement is that `advance` never returns an instant in the past.
+        assert!(next.as_ticks() >= now.as_ticks());
         assert!(period.missed_activations() > 0);
     }
 }
