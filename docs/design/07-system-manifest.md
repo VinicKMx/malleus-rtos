@@ -107,7 +107,7 @@ cause is not obvious.
 
 ## 5. Validation
 
-`cargo malleus check` runs 23 classes of check. Every diagnostic states **what is
+`cargo malleus check` runs 26 classes of check. Every diagnostic states **what is
 wrong, where, and what to do about it** — the last part enforced by a test in
 `malleus-manifest`, not by good intentions.
 
@@ -145,6 +145,9 @@ error[M0007]: declared worst-case execution time 600us exceeds deadline 500us;
 | M0021 | error | Capability held by a non-endpoint |
 | M0022 | warning | Channel declared but unusable — wasted RAM |
 | M0023 | error | Malformed duration |
+| M0024 | error | Tick rate is not an interpretable frequency |
+| M0025 | error | Tick rate is zero |
+| M0026 | error | Period is zero |
 
 **M0018 is the one worth highlighting.** A high-priority task blocking on a
 channel drained by a lower-priority one is priority inversion built into the
