@@ -1,0 +1,5 @@
+# The boards workspace currently contains only the Cortex-M7 bring-up target.
+# A board for another architecture must override this target in its own config
+# rather than silently being built for the M7 instruction set.
+[build]
+target = "thumbv7em-none-eabihf"
