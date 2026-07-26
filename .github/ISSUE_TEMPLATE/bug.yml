@@ -1,0 +1,29 @@
+name: Bug report
+description: Something does not work as documented
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Working today: `cargo malleus check` and `cargo malleus analyze`.
+        Everything else is unimplemented and says so — please check the
+        [README](../../blob/main/README.md#what-is-built) before filing.
+  - type: textarea
+    attributes:
+      label: What you did
+      description: Include the command and the manifest, if relevant.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What happened
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Version or commit

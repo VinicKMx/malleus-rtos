@@ -1,0 +1,34 @@
+name: Design review
+description: Argue that a design decision is wrong. The most valuable contribution right now.
+labels: [design]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The project is at Checkpoint 0: the architecture is written down and the
+        kernel does not exist. Design review is worth more than patches.
+
+        If you have shipped an industrial product and something here looks
+        wrong, this is the issue to open.
+  - type: input
+    attributes:
+      label: Which document or ADR
+      placeholder: docs/adr/0002-static-system-definition.md
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What you think is wrong
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What experience leads you to think so
+      description: >
+        "I tried this approach and here is how it failed" is worth a week of
+        speculation. Concrete beats general.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What you would do instead, and what it would cost
