@@ -1,0 +1,18 @@
+[package]
+name = "malleus-analyzer"
+description = "Build-time schedulability, stack, and memory analysis for Malleus RTOS"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+malleus-manifest = { workspace = true }
+thiserror = { workspace = true }
