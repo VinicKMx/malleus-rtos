@@ -5,6 +5,7 @@ members = [
     "crates/malleus-arch",
     "crates/malleus-manifest",
     "crates/malleusrt",
+    "tools/cargo-malleus",
     "xtask",
 ]
 
