@@ -1,0 +1,21 @@
+# Root workspace: host-only. Bare-metal build configuration lives in
+# `examples/.cargo/config.toml` and `boards/.cargo/config.toml`, because those
+# are separate workspaces with a bare-metal default target.
+
+[alias]
+xtask = "run --package xtask --"
+malleus = "run --package cargo-malleus --bin cargo-malleus --"
+
+[target.thumbv7em-none-eabihf]
+rustflags = [
+    "-C", "link-arg=-Tlink.x",
+    # Emit frame pointers so post-mortem stack unwinding from a crash dump can
+    # walk a faulted task without needing DWARF on the device.
+    "-C", "force-frame-pointers=yes",
+]
+
+[target.'thumbv8m.main-none-eabihf']
+rustflags = [
+    "-C", "link-arg=-Tlink.x",
+    "-C", "force-frame-pointers=yes",
+]
