@@ -3,7 +3,11 @@ resolver = "3"
 members = [
     "crates/malleus-analyzer",
     "crates/malleus-arch",
+    "crates/malleus-arch-cortex-m",
+    "crates/malleus-codegen",
     "crates/malleus-manifest",
+    "crates/malleus-runtime",
+    "crates/malleus-trace",
     "crates/malleusrt",
     "tools/cargo-malleus",
     "xtask",
@@ -29,7 +33,11 @@ categories = ["embedded", "no-std", "os"]
 [workspace.dependencies]
 malleus-analyzer = { version = "0.0.0", path = "crates/malleus-analyzer" }
 malleus-arch = { version = "0.0.0", path = "crates/malleus-arch" }
+malleus-arch-cortex-m = { version = "0.0.0", path = "crates/malleus-arch-cortex-m" }
+malleus-codegen = { version = "0.0.0", path = "crates/malleus-codegen" }
 malleus-manifest = { version = "0.0.0", path = "crates/malleus-manifest" }
+malleus-runtime = { version = "0.0.0", path = "crates/malleus-runtime" }
+malleus-trace = { version = "0.0.0", path = "crates/malleus-trace" }
 malleusrt = { version = "0.0.0", path = "crates/malleusrt" }
 
 # Host-side tooling dependencies.
