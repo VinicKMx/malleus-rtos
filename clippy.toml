@@ -1,0 +1,13 @@
+# Test code may panic — that is what a failing test is.
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+allow-panic-in-tests = true
+allow-indexing-slicing-in-tests = true
+
+# The kernel is `no_std` and must stay that way. This catches a dependency
+# sneaking `std` in through a default feature.
+disallowed-types = []
+
+# Malleus targets 32-bit microcontrollers. A `usize` assumption that only holds
+# on 64-bit hosts is a portability bug the host test suite will never find.
+msrv = "1.90"

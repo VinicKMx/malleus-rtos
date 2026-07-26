@@ -1,0 +1,11 @@
+[toolchain]
+# Pinned so that every contributor, the CI, and the published benchmark numbers
+# all come from one compiler. Bumping this file is a reviewed change with a
+# CHANGELOG entry — see docs/adr/0011-toolchain-and-msrv-policy.md.
+channel = "1.95.0"
+components = ["rustfmt", "clippy", "llvm-tools"]
+targets = [
+    "thumbv7em-none-eabihf", # Cortex-M4F / M7  — Nucleo-F767ZI, bring-up board
+    "thumbv8m.main-none-eabihf", # Cortex-M33   — primary isolation target
+]
+profile = "minimal"

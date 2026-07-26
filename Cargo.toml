@@ -1,0 +1,65 @@
+[workspace]
+resolver = "3"
+members = [
+    "xtask",
+]
+
+# `boards/` and `examples/` are deliberately NOT workspace members. They only
+# build for bare-metal targets (thumbv7em-none-eabihf and friends) and carry
+# their own workspace so that `cargo test` at the root stays a host-only,
+# always-green operation. See docs/internals/workspace-layout.md.
+exclude = ["boards", "examples"]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.90"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/VinicKMx/malleus-rtos"
+homepage = "https://github.com/VinicKMx/malleus-rtos"
+authors = ["The Malleus RTOS Developers"]
+keywords = ["rtos", "embedded", "no-std", "real-time", "cortex-m"]
+categories = ["embedded", "no-std", "os"]
+
+[workspace.dependencies]
+# Host-side tooling dependencies.
+anyhow = "1.0"
+clap = { version = "4.5", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.9"
+thiserror = "2.0"
+
+[workspace.lints.rust]
+missing_docs = "warn"
+unsafe_op_in_unsafe_fn = "deny"
+unreachable_pub = "warn"
+
+[workspace.lints.clippy]
+# Applies to everything, host tooling included.
+undocumented_unsafe_blocks = "deny"
+missing_safety_doc = "deny"
+panic_in_result_fn = "warn"
+todo = "warn"
+unwrap_used = "warn"
+
+# `arithmetic_side_effects` and `indexing_slicing` are deliberately NOT here.
+# They are denied per-crate, at the top of `malleusrt` and `malleus-arch`, where
+# a panicking add or an out-of-range index is a system that stops controlling a
+# motor. On host tooling the same lints buy nothing and cost readability: a
+# panicking overflow in an offline analyser is an ordinary bug caught by
+# `overflow-checks`, not a safety event. Applying a rule where it does not pay
+# is how a codebase learns to reach for `#[allow]` by reflex.
+# See docs/adr/0010-unsafe-code-policy.md.
+
+[profile.release]
+codegen-units = 1
+debug = 2          # Symbols are free in flash: they live in the ELF, not the image.
+lto = "fat"
+opt-level = "s"
+overflow-checks = true
+panic = "abort"
+
+[profile.dev]
+opt-level = 1      # -O0 firmware is often too slow to meet its own deadlines.
+debug = 2
+overflow-checks = true
