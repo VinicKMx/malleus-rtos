@@ -1,6 +1,7 @@
 [workspace]
 resolver = "3"
 members = [
+    "crates/malleus-analyzer",
     "crates/malleus-arch",
     "crates/malleus-manifest",
     "crates/malleusrt",
@@ -25,6 +26,7 @@ keywords = ["rtos", "embedded", "no-std", "real-time", "cortex-m"]
 categories = ["embedded", "no-std", "os"]
 
 [workspace.dependencies]
+malleus-analyzer = { version = "0.0.0", path = "crates/malleus-analyzer" }
 malleus-arch = { version = "0.0.0", path = "crates/malleus-arch" }
 malleus-manifest = { version = "0.0.0", path = "crates/malleus-manifest" }
 malleusrt = { version = "0.0.0", path = "crates/malleusrt" }
