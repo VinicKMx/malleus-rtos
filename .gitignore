@@ -26,3 +26,7 @@ Cargo.lock.bak
 .claude/
 .aider*
 .cursor/
+
+# Private project meta — planning and personal build log, not tool documentation
+/docs/ROADMAP.md
+/docs/journal/
