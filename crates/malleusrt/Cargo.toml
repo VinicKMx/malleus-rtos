@@ -1,0 +1,26 @@
+[package]
+name = "malleusrt"
+description = "MalleusRT — the deterministic, statically-configured real-time kernel of Malleus RTOS"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+malleus-arch = { workspace = true }
+
+[features]
+default = []
+# Kernel-internal metrics: per-task CPU accounting, stack high-water marks,
+# deadline-miss counters. Costs RAM and a few cycles per switch; the exact cost
+# is published in the benchmark report for both settings.
+metrics = []
+# Emit trace events to the host. Implies `metrics`.
+trace = ["metrics"]
