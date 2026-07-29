@@ -1,6 +1,6 @@
 //! ARM Cortex-M port of the Malleus architecture layer.
 //!
-//! # Status: not yet implemented — Checkpoint 1
+//! # Status: bring-up in progress — Checkpoint 1
 //!
 //! This crate is a declared shape, not a working port. It is in the repository
 //! from day one so that the [`malleus_arch`] contract is exercised by a real
@@ -45,6 +45,9 @@
 
 #![no_std]
 #![forbid(unsafe_op_in_unsafe_fn)]
+
+#[cfg(any(feature = "cortex-m4", feature = "cortex-m7", feature = "cortex-m33"))]
+mod startup;
 
 /// Cortex-M7 (ARMv7E-M) port.
 ///
