@@ -579,10 +579,14 @@ fn parse_tick_hz(text: &str) -> Option<u64> {
     let split = trimmed.find(|c: char| !c.is_ascii_digit())?;
     let (number, unit) = trimmed.split_at(split);
     let value = number.parse::<u64>().ok()?;
+    // `checked_mul`, not `*`: the multiplier is applied to a number that came
+    // straight from a user-written manifest. `overflow-checks` is on in release
+    // as well as dev, so a plain multiply here aborts the tool on a manifest it
+    // exists to diagnose. Overflow becomes `None`, which M0024 reports.
     match unit.trim() {
         "Hz" => Some(value),
-        "kHz" => Some(value * 1_000),
-        "MHz" => Some(value * 1_000_000),
+        "kHz" => value.checked_mul(1_000),
+        "MHz" => value.checked_mul(1_000_000),
         _ => None,
     }
 }
@@ -732,6 +736,34 @@ mod tests {
             !codes(&report).contains(&"M0006"),
             "deadline-longer-than-period must not fire against a zero period: {report}"
         );
+    }
+
+    /// `tick_rate = "18446744073710MHz"` used to abort the process with an
+    /// arithmetic overflow at the multiply. A manifest is untrusted input to
+    /// this tool; malformed input must produce a diagnostic, never a panic.
+    #[test]
+    fn an_overflowing_tick_rate_is_reported_not_panicked() {
+        let source = concat!(
+            "[system]\nname = \"t\"\nboard = \"nucleo-f767zi\"\n",
+            "tick_rate = \"18446744073710MHz\"\n",
+            "[[task]]\nname = \"control\"\npriority = 7\nstack = \"2KiB\"\n",
+            "period = \"1ms\"\nwcet = \"100us\"\n"
+        );
+        let m = Manifest::parse(source).expect("manifest must parse");
+        let report = m.validate();
+        assert!(
+            codes(&report).contains(&"M0024"),
+            "expected M0024: {report}"
+        );
+    }
+
+    #[test]
+    fn valid_tick_rate_units_still_scale() {
+        assert_eq!(parse_tick_hz("1Hz"), Some(1));
+        assert_eq!(parse_tick_hz("8kHz"), Some(8_000));
+        assert_eq!(parse_tick_hz("1MHz"), Some(1_000_000));
+        assert_eq!(parse_tick_hz("216MHz"), Some(216_000_000));
+        assert_eq!(parse_tick_hz("1GHz"), None, "unsupported unit");
     }
 
     #[test]
