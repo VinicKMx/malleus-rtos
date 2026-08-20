@@ -209,9 +209,10 @@ central thesis and should say so rather than continuing on momentum.
 
 ## 7. On the name
 
-*Malleus* is Latin for hammer. It is also the first bone in the ossicular chain
-of the middle ear — the one that receives the vibration and passes it on,
-faithfully and without delay.
+*Malleus* is Latin for hammer, a simple, durable tool that turns directed force 
+into useful work. The name reflects the project's intent: precise, predictable 
+action; minimal unnecessary complexity; and engineering that can be inspected, 
+trusted, and relied upon under pressure.
 
 **MalleusRT** is the kernel proper. **Malleus RTOS** is the whole platform:
 kernel, runtime, analyser, tooling, board support. The distinction matters,
@@ -221,6 +222,7 @@ solely by its scheduler.
 
 ---
 
-*This is a living document. It will be revised as reality argues with it, and
+*This is a living document.
+It will be revised as reality argues with it, and
 each revision recorded in the git history. If it stops describing what the
 project actually does, that is a defect — please open an issue.*
