@@ -188,7 +188,7 @@ about it; that last part is enforced by a test, not by good intentions.
 | Component | Status |
 |---|---|
 | Architecture contract (`malleus-arch`) | Defined, with an 18-item conformance suite |
-| Manifest schema, parser, validator | **Working** — 23 diagnostic classes |
+| Manifest schema, parser, validator | **Working** — 26 diagnostic classes |
 | Response-time analyser | **Working** — exact, with pinned reference numbers |
 | `cargo malleus check` / `analyze` | **Working** |
 | MalleusRT kernel | Types and contracts only — no scheduler yet |
