@@ -1,0 +1,46 @@
+[package]
+name = "nucleo-f767zi"
+description = "Malleus RTOS target foundation for the ST Nucleo-F767ZI"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.90"
+license = "MIT OR Apache-2.0"
+publish = false
+build = "build.rs"
+
+[workspace]
+resolver = "3"
+
+[dependencies]
+malleus-arch-cortex-m = { path = "../../crates/malleus-arch-cortex-m", features = ["cortex-m7"] }
+
+[[bin]]
+name = "nucleo-f767zi"
+test = false
+bench = false
+
+[profile.dev]
+opt-level = 1
+debug = 2
+overflow-checks = true
+panic = "abort"
+
+[profile.release]
+codegen-units = 1
+debug = 2
+lto = "fat"
+opt-level = "s"
+overflow-checks = true
+panic = "abort"
+
+[lints.rust]
+missing_docs = "warn"
+unsafe_op_in_unsafe_fn = "deny"
+unreachable_pub = "warn"
+
+[lints.clippy]
+missing_safety_doc = "deny"
+panic_in_result_fn = "warn"
+todo = "warn"
+undocumented_unsafe_blocks = "deny"
+unwrap_used = "warn"
