@@ -249,6 +249,25 @@ impl Manifest {
 
         for task in &self.tasks {
             let period = parse_duration(task.period.as_deref(), &task.name, "period", report);
+            // A zero period means "activate again immediately, forever". No
+            // schedule satisfies it, and its utilisation is unbounded rather
+            // than zero. Report it and then discard the value, so that no
+            // later check derives a verdict from a number that cannot be real.
+            let period = match period {
+                Some(p) if p.as_nanos() == 0 => {
+                    report.push(
+                        Severity::Error,
+                        "M0026",
+                        &task.name,
+                        "period is zero, so the task is due again the instant it starts and \
+                         demands unbounded CPU",
+                        "declare the real activation interval, or remove `period` entirely \
+                         if the task is aperiodic",
+                    );
+                    None
+                }
+                other => other,
+            };
             let deadline = parse_duration(task.deadline.as_deref(), &task.name, "deadline", report);
             let wcet = parse_duration(task.wcet.as_deref(), &task.name, "wcet", report);
 
@@ -663,6 +682,55 @@ mod tests {
         assert!(
             !codes(&report).contains(&"M0009"),
             "a zero tick rate must not also produce a tick-alignment warning: {report}"
+        );
+    }
+
+    /// A zero period passed validation with "no findings" and the analyser
+    /// then printed PASS for it, which is the exact failure ADR-0002 rejects:
+    /// a verdict carrying authority it has not earned.
+    #[test]
+    fn a_zero_period_is_an_error() {
+        let m = manifest(
+            r#"
+            [[task]]
+            name = "control"
+            priority = 7
+            stack = "2KiB"
+            period = "0us"
+            wcet = "0us"
+        "#,
+        );
+        let report = m.validate();
+        assert!(
+            codes(&report).contains(&"M0026"),
+            "expected M0026: {report}"
+        );
+        assert!(!report.is_ok(), "a zero period must stop the build");
+    }
+
+    /// Once the period is known to be nonsense, checks derived from it must
+    /// not also fire; the engineer needs the cause, not its consequences.
+    #[test]
+    fn a_zero_period_suppresses_checks_derived_from_it() {
+        let m = manifest(
+            r#"
+            [[task]]
+            name = "control"
+            priority = 7
+            stack = "2KiB"
+            period = "0us"
+            deadline = "10us"
+            wcet = "1us"
+        "#,
+        );
+        let report = m.validate();
+        assert!(
+            codes(&report).contains(&"M0026"),
+            "expected M0026: {report}"
+        );
+        assert!(
+            !codes(&report).contains(&"M0006"),
+            "deadline-longer-than-period must not fire against a zero period: {report}"
         );
     }
 
