@@ -23,7 +23,7 @@ jobs:
     name: fmt · clippy · test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           # rust-toolchain.toml pins the version; this action honours it.
@@ -54,7 +54,7 @@ jobs:
           - thumbv7em-none-eabihf    # Cortex-M4F / M7 — Nucleo-F767ZI
           - thumbv8m.main-none-eabihf # Cortex-M33
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
@@ -75,7 +75,7 @@ jobs:
     name: MSRV
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       # An MSRV that is not tested is a guess. See ADR-0011.
       - name: Read MSRV from Cargo.toml
         id: msrv
@@ -94,7 +94,7 @@ jobs:
     name: reference applications validate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
 
@@ -119,7 +119,7 @@ jobs:
     name: unsafe code audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       # `undocumented_unsafe_blocks` is denied in [workspace.lints.clippy], so
