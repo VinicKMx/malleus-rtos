@@ -5,6 +5,8 @@
 //! contract. Boards provide the linker symbols and materialize the entry in
 //! their binary with the hidden macro below.
 
+use core::mem::MaybeUninit;
+
 const DATA_PATTERN: u32 = 0x4441_5441;
 const EVIDENCE_OK: u32 = 0x4d41_4c32;
 const EVIDENCE_DATA_FAILED: u32 = 0x4441_5441;
@@ -28,6 +30,15 @@ static mut BSS_SENTINEL: u32 = 0;
 #[unsafe(link_section = ".uninit.boot_evidence")]
 #[unsafe(no_mangle)]
 static mut MALLEUS_BOOT_EVIDENCE: u32 = 0;
+
+// Reset writes this word before touching `.data` or `.bss`. Fault assembly
+// consults it before entering Rust, so a startup fault cannot cross the Rust
+// boundary while RAM is still invalid.
+// SAFETY: assembly and the fault handler access this aligned word only through
+// volatile loads/stores during single-core bootstrap.
+#[unsafe(link_section = ".uninit.fault_state")]
+#[unsafe(no_mangle)]
+pub(crate) static mut MALLEUS_FAULT_CAPTURE_STATE: MaybeUninit<u32> = MaybeUninit::uninit();
 
 /// First Rust entry after the assembly reset stub establishes valid RAM.
 ///
@@ -57,6 +68,21 @@ unsafe extern "C" fn __malleus_start() -> ! {
     // the `.uninit` word is aligned, valid, and exclusively owned here.
     unsafe { (&raw mut MALLEUS_BOOT_EVIDENCE).write_volatile(evidence) };
 
+    #[cfg(all(feature = "cortex-m7", target_arch = "arm"))]
+    crate::fault::arm_capture();
+
+    #[cfg(all(
+        feature = "cortex-m7",
+        feature = "bootstrap-fault-probe",
+        target_arch = "arm"
+    ))]
+    crate::fault::run_bootstrap_probe();
+
+    #[cfg(not(all(
+        feature = "cortex-m7",
+        feature = "bootstrap-fault-probe",
+        target_arch = "arm"
+    )))]
     loop {
         core::hint::spin_loop();
     }
@@ -79,6 +105,11 @@ macro_rules! __malleus_cortex_m_reset {
     .type Reset, %function
     .thumb_func
 Reset:
+    /* Keep faults in assembly until Rust memory initialization is complete. */
+    ldr r0, =MALLEUS_FAULT_CAPTURE_STATE
+    ldr r1, =0x52535430
+    str r1, [r0]
+
     /* Copy the word-aligned `.data` image from Flash into RAM. */
     ldr r0, =__sidata
     ldr r1, =__sdata

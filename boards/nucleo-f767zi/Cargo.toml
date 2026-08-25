@@ -11,8 +11,12 @@ build = "build.rs"
 [workspace]
 resolver = "3"
 
+[features]
+default = []
+hardfault-escalation-probe = ["malleus-arch-cortex-m/bootstrap-hardfault-escalation"]
+
 [dependencies]
-malleus-arch-cortex-m = { path = "../../crates/malleus-arch-cortex-m", features = ["cortex-m7"] }
+malleus-arch-cortex-m = { path = "../../crates/malleus-arch-cortex-m", features = ["bootstrap-fault-probe", "cortex-m7"] }
 
 [[bin]]
 name = "nucleo-f767zi"

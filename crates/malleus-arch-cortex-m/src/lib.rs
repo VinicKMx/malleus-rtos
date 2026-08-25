@@ -2,11 +2,11 @@
 //!
 //! # Status: bring-up in progress — Checkpoint 1
 //!
-//! This crate is a declared shape, not a working port. It is in the repository
-//! from day one so that the [`malleus_arch`] contract is exercised by a real
-//! consumer and so the porting surface is visible to anyone evaluating the
-//! project. It contains no stubs that pretend to work: the port either exists
-//! or the build tells you it does not.
+//! This crate contains the partial Cortex-M7 bring-up path, not a supported
+//! port. Reset, memory initialization, and terminal exception capture exist so
+//! that the [`malleus_arch`] contract is exercised by a real consumer and the
+//! remaining porting surface is visible. It contains no stubs that pretend to
+//! work: a capability either exists or the build tells you it does not.
 //!
 //! # Planned variants
 //!
@@ -49,10 +49,14 @@
 #[cfg(any(feature = "cortex-m4", feature = "cortex-m7", feature = "cortex-m33"))]
 mod startup;
 
+#[cfg(all(feature = "cortex-m7", any(target_arch = "arm", test)))]
+mod fault;
+
 /// Cortex-M7 (ARMv7E-M) port.
 ///
-/// Empty until Checkpoint 1. See the module documentation for the delivery
-/// list and `docs/internals/porting.md` for the walkthrough.
+/// Bring-up support is internal until Checkpoint 1 is complete. See the module
+/// documentation for the delivery list and `docs/internals/porting.md` for the
+/// walkthrough.
 #[cfg(feature = "cortex-m7")]
 pub mod m7 {}
 

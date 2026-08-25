@@ -2,6 +2,10 @@ INCLUDE memory.x
 
 ENTRY(Reset);
 EXTERN(Reset);
+EXTERN(HardFault);
+EXTERN(MemManage);
+EXTERN(BusFault);
+EXTERN(UsageFault);
 
 SECTIONS
 {
@@ -13,6 +17,12 @@ SECTIONS
     __vector_table = .;
     LONG(__stack_start);
     LONG(Reset);
+    LONG(0);          /* NMI */
+    LONG(HardFault);
+    LONG(MemManage);
+    LONG(BusFault);
+    LONG(UsageFault);
+    . = __vector_table + 64; /* Remaining architectural exceptions. */
     . = __vector_table + 512;
   } > FLASH
 

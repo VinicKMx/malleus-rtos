@@ -1,8 +1,9 @@
 # Nucleo-F767ZI bring-up
 
 > **Status:** reset and memory initialization observed on a physical
-> Nucleo-F767ZI. This does not yet make the full Cortex-M7 port supported; later
-> checkpoint requirements remain unimplemented.
+> Nucleo-F767ZI; terminal fault capture implemented and target-built, with its
+> hardware observation still pending. This does not yet make the full Cortex-M7
+> port supported; later checkpoint requirements remain unimplemented.
 
 This workspace is deliberately separate from the host-only root workspace. It
 targets the STM32F767ZI Cortex-M7 on the Nucleo-F767ZI without introducing a
@@ -60,11 +61,12 @@ cache, FPU, and exception work in later commits.
 
 ## Reset contract
 
-The vector table occupies the first 512 bytes of Flash. It contains only the
-initial DTCM stack pointer and the `Reset` entry; all other entries are zero.
-`Reset` executes entirely in assembly while it copies the word-aligned `.data`
-image from Flash and clears the word-aligned `.bss` range. Only then does it
-enter Rust. `.uninit` is deliberately preserved.
+The vector table occupies the first 512 bytes of Flash. It contains the initial
+DTCM stack pointer, `Reset`, and the four architectural fault entries described
+below; unused entries remain zero. `Reset` executes entirely in assembly while
+it copies the word-aligned `.data` image from Flash and clears the word-aligned
+`.bss` range. Only then does it enter Rust. `.uninit` is deliberately
+preserved.
 
 The board image contains non-zero `.data` and zero-valued `.bss` sentinels.
 After checking both, it writes one of these values to the exported
@@ -104,3 +106,85 @@ The validated sequence was:
 
 The debugger's reset vector catch was explicitly disabled before physical-reset
 observations. A halted reset is not accepted as boot evidence.
+
+## Exception and fault-capture contract
+
+The architectural encodings, frame layouts, and SCB register semantics follow
+[PM0253 Rev 6](https://www.st.com/resource/en/programming_manual/DM00237416.pdf),
+especially its exception model and Cortex-M7 peripheral chapters.
+
+`HardFault`, `MemManage`, `BusFault`, and `UsageFault` share one assembly entry.
+It masks configurable interrupts, preserves `EXC_RETURN`, selects the
+pre-exception MSP or PSP, and crosses into Rust only after reset has armed fault
+capture. A fault before arming or a recursive entry stops in assembly instead
+of trusting Rust memory state again.
+
+The Rust boundary accepts only the six ARMv7-M `EXC_RETURN` encodings used by
+basic and extended frames. It does not dereference the frame if CFSR reports an
+unstacking, stacking, or lazy-state preservation error. A valid extended frame
+has its 18-word floating-point prefix skipped before reading the eight-word
+core frame. Capture is terminal: it neither returns to faulting code nor
+attempts task attribution, supervision, recovery, or persistent storage.
+
+`MALLEUS_FAULT_CAPTURE_STATE` exposes the capture lifecycle in `.uninit`:
+
+| Value | Meaning |
+|---:|---|
+| `0x5253_5430` | reset/memory initialization in progress (`RST0`) |
+| `0x4152_4d44` | Rust memory is valid and capture is armed (`ARMD`) |
+| `0x4341_5054` | the common entry owns capture (`CAPT`) |
+| `0x444f_4e45` | the complete snapshot is published (`DONE`) |
+
+`MALLEUS_FAULT_EVIDENCE` is a fixed 19-word snapshot. The first word is written
+last, so only `0x4d41_4c46` (`MALF`) authorizes interpretation of the remaining
+words:
+
+| Word(s) | Field |
+|---:|---|
+| 0 | magic (`MALF`) |
+| 1 | format version (`1`) |
+| 2–5 | exception number, `EXC_RETURN`, selected stack pointer, frame flags |
+| 6–13 | stacked `r0`–`r3`, `r12`, `lr`, `pc`, and `xPSR` |
+| 14–18 | CFSR, HFSR, SHCSR, MMFAR, and BFAR |
+
+Frame flags are bit 0 for a valid core frame, bit 1 for an extended frame, bit
+2 for PSP selection, bit 3 for a valid MMFAR, and bit 4 for a valid BFAR. An
+address without its validity flag is stored as zero. The snapshot can contain
+sensitive register values and is intended only for controlled bootstrap
+diagnostics.
+
+The default release image enables configurable faults and executes `UDF`, so
+the expected terminal exception is `UsageFault`:
+
+```bash
+cargo build --release \
+  --manifest-path boards/nucleo-f767zi/Cargo.toml \
+  --target thumbv7em-none-eabihf
+```
+
+The alternate image leaves UsageFault disabled before the same instruction,
+exercising escalation to `HardFault`:
+
+```bash
+cargo build --release \
+  --manifest-path boards/nucleo-f767zi/Cargo.toml \
+  --target thumbv7em-none-eabihf \
+  --features hardfault-escalation-probe
+```
+
+Both probes are intentionally terminal and must not be used as an application
+runtime. Hardware evidence must record the exact ELF or Flash-image hash,
+board/PCB and silicon revisions, probe, feature set, state word, all 19 evidence
+words, and confirmation that a reset does not return to the planted fault.
+
+## C1.P1.3 verification status
+
+On 2026-08-25, both release configurations cross-built with Rust 1.95.0.
+Inspection of the default ELF confirmed the four populated architectural fault
+vectors, the shared entry, a 76-byte evidence object, and an 84-byte total
+`.uninit` allocation. Host tests cover every accepted `EXC_RETURN` layout, all
+six frame-rejection status bits, and the fixed evidence offsets.
+
+Physical observation of the configurable UsageFault and escalated HardFault is
+not yet recorded because no debug probe was connected during this validation.
+Consequently, C1.P1.3 and the C1.P1 phase are not represented as closed.
