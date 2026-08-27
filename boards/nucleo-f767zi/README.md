@@ -121,10 +121,12 @@ of trusting Rust memory state again.
 
 The Rust boundary accepts only the six ARMv7-M `EXC_RETURN` encodings used by
 basic and extended frames. It does not dereference the frame if CFSR reports an
-unstacking, stacking, or lazy-state preservation error. A valid extended frame
-has its 18-word floating-point prefix skipped before reading the eight-word
-core frame. Capture is terminal: it neither returns to faulting code nor
-attempts task attribution, supervision, recovery, or persistent storage.
+unstacking, stacking, or lazy-state preservation error. Both basic and extended
+frames have their eight-word core frame at the selected SP, with PC at SP+0x18.
+In an extended frame, floating-point storage follows at SP+0x20; capture leaves that
+storage untouched and preserves the extended-frame flag. Capture is terminal:
+it neither returns to faulting code nor attempts task attribution, supervision,
+recovery, or persistent storage.
 
 `MALLEUS_FAULT_CAPTURE_STATE` exposes the capture lifecycle in `.uninit`:
 

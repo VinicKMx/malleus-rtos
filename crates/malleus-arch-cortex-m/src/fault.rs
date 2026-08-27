@@ -28,14 +28,13 @@ const EXC_RETURN_HANDLER_MSP_EXTENDED: u32 = 0xffff_ffe1;
 const EXC_RETURN_THREAD_MSP_EXTENDED: u32 = 0xffff_ffe9;
 const EXC_RETURN_THREAD_PSP_EXTENDED: u32 = 0xffff_ffed;
 
-const EXTENDED_FRAME_PREFIX_WORDS: usize = 18;
 const STACKING_ERROR_MASK: u32 = 0x0000_3838;
 #[cfg(target_arch = "arm")]
 const MMFAR_VALID: u32 = 1 << 7;
 #[cfg(target_arch = "arm")]
 const BFAR_VALID: u32 = 1 << 15;
 
-#[cfg(target_arch = "arm")]
+#[cfg(any(target_arch = "arm", test))]
 const FRAME_VALID: u32 = 1 << 0;
 const FRAME_EXTENDED: u32 = 1 << 1;
 const FRAME_USED_PSP: u32 = 1 << 2;
@@ -124,16 +123,12 @@ struct FaultEvidence {
 #[unsafe(no_mangle)]
 static mut MALLEUS_FAULT_EVIDENCE: MaybeUninit<FaultEvidence> = MaybeUninit::uninit();
 
-fn frame_layout(exc_return: u32) -> Option<(usize, u32)> {
+fn frame_layout(exc_return: u32) -> Option<u32> {
     match exc_return {
-        EXC_RETURN_HANDLER_MSP_BASIC | EXC_RETURN_THREAD_MSP_BASIC => Some((0, 0)),
-        EXC_RETURN_THREAD_PSP_BASIC => Some((0, FRAME_USED_PSP)),
-        EXC_RETURN_HANDLER_MSP_EXTENDED | EXC_RETURN_THREAD_MSP_EXTENDED => {
-            Some((EXTENDED_FRAME_PREFIX_WORDS, FRAME_EXTENDED))
-        }
-        EXC_RETURN_THREAD_PSP_EXTENDED => {
-            Some((EXTENDED_FRAME_PREFIX_WORDS, FRAME_EXTENDED | FRAME_USED_PSP))
-        }
+        EXC_RETURN_HANDLER_MSP_BASIC | EXC_RETURN_THREAD_MSP_BASIC => Some(0),
+        EXC_RETURN_THREAD_PSP_BASIC => Some(FRAME_USED_PSP),
+        EXC_RETURN_HANDLER_MSP_EXTENDED | EXC_RETURN_THREAD_MSP_EXTENDED => Some(FRAME_EXTENDED),
+        EXC_RETURN_THREAD_PSP_EXTENDED => Some(FRAME_EXTENDED | FRAME_USED_PSP),
         _ => None,
     }
 }
@@ -156,24 +151,24 @@ fn write_shcsr(value: u32) {
     unsafe { (SHCSR_ADDRESS as *mut u32).write_volatile(value) }
 }
 
-#[cfg(target_arch = "arm")]
+#[cfg(any(target_arch = "arm", test))]
 fn read_exception_frame(
     stack_pointer: *const u32,
     exc_return: u32,
     cfsr: u32,
 ) -> Option<(ExceptionFrame, u32)> {
-    let (prefix_words, layout_flags) = frame_layout(exc_return)?;
+    let layout_flags = frame_layout(exc_return)?;
     if stacking_failed(cfsr) || (stack_pointer as usize) & 0x3 != 0 {
         return None;
     }
 
-    let frame_pointer = stack_pointer
-        .wrapping_add(prefix_words)
-        .cast::<ExceptionFrame>();
+    let frame_pointer = stack_pointer.cast::<ExceptionFrame>();
     // SAFETY: a recognized EXC_RETURN value identifies the selected hardware
     // stack and frame kind. With no stacking/lazy-stacking error recorded,
-    // ARMv7-M guarantees that exception entry populated the aligned core frame;
-    // every bit pattern is valid for this all-u32 representation.
+    // ARMv7-M guarantees that exception entry populated the aligned core frame
+    // at SP+0 for both basic and extended frames. Host tests supply a live,
+    // aligned buffer containing those eight words instead. Every bit pattern
+    // is valid for this all-u32 representation.
     let frame = unsafe { frame_pointer.read_volatile() };
     Some((frame, layout_flags | FRAME_VALID))
 }
@@ -369,34 +364,56 @@ mod tests {
     #[test]
     fn exc_return_selects_the_core_frame_and_stack() {
         let cases = [
-            (EXC_RETURN_HANDLER_MSP_BASIC, 0, 0),
-            (EXC_RETURN_THREAD_MSP_BASIC, 0, 0),
-            (EXC_RETURN_THREAD_PSP_BASIC, 0, FRAME_USED_PSP),
-            (
-                EXC_RETURN_HANDLER_MSP_EXTENDED,
-                EXTENDED_FRAME_PREFIX_WORDS,
-                FRAME_EXTENDED,
-            ),
-            (
-                EXC_RETURN_THREAD_MSP_EXTENDED,
-                EXTENDED_FRAME_PREFIX_WORDS,
-                FRAME_EXTENDED,
-            ),
+            (EXC_RETURN_HANDLER_MSP_BASIC, 0),
+            (EXC_RETURN_THREAD_MSP_BASIC, 0),
+            (EXC_RETURN_THREAD_PSP_BASIC, FRAME_USED_PSP),
+            (EXC_RETURN_HANDLER_MSP_EXTENDED, FRAME_EXTENDED),
+            (EXC_RETURN_THREAD_MSP_EXTENDED, FRAME_EXTENDED),
             (
                 EXC_RETURN_THREAD_PSP_EXTENDED,
-                EXTENDED_FRAME_PREFIX_WORDS,
                 FRAME_EXTENDED | FRAME_USED_PSP,
             ),
         ];
 
-        for (exc_return, expected_words, expected_flags) in cases {
-            assert_eq!(
-                frame_layout(exc_return),
-                Some((expected_words, expected_flags))
-            );
+        for (exc_return, expected_flags) in cases {
+            assert_eq!(frame_layout(exc_return), Some(expected_flags));
         }
         assert_eq!(frame_layout(0xffff_ffff), None);
         assert_eq!(frame_layout(0), None);
+    }
+
+    #[test]
+    fn basic_and_extended_frames_read_the_core_at_sp() {
+        // ARMv7-M PushStack places the core first; FP storage follows at word 8.
+        // Distinct FP words catch the old 18-word offset, including a false PC.
+        let mut words = [0xf0f0_f0f0; 26];
+        let core = [0, 1, 2, 3, 12, 0xffff_fff9, 0x0800_1234, 0x0100_0000];
+        words[..8].copy_from_slice(&core);
+        for (exc_return, expected_flags) in [
+            (EXC_RETURN_HANDLER_MSP_BASIC, FRAME_VALID),
+            (EXC_RETURN_THREAD_MSP_BASIC, FRAME_VALID),
+            (EXC_RETURN_THREAD_PSP_BASIC, FRAME_VALID | FRAME_USED_PSP),
+            (
+                EXC_RETURN_HANDLER_MSP_EXTENDED,
+                FRAME_VALID | FRAME_EXTENDED,
+            ),
+            (EXC_RETURN_THREAD_MSP_EXTENDED, FRAME_VALID | FRAME_EXTENDED),
+            (
+                EXC_RETURN_THREAD_PSP_EXTENDED,
+                FRAME_VALID | FRAME_EXTENDED | FRAME_USED_PSP,
+            ),
+        ] {
+            let (frame, flags) =
+                read_exception_frame(words.as_ptr(), exc_return, 0).expect("valid synthetic frame");
+            assert_eq!(flags, expected_flags);
+            assert_eq!(
+                [
+                    frame.r0, frame.r1, frame.r2, frame.r3, frame.r12, frame.lr, frame.pc,
+                    frame.xpsr
+                ],
+                core
+            );
+        }
     }
 
     #[test]
