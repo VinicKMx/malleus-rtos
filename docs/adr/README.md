@@ -41,9 +41,10 @@ worse, silently reversed.
 | [0007](0007-fault-model.md) | Faults are contained, recorded, and supervised | Accepted |
 | [0008](0008-time-and-tickless-idle.md) | Monotonic 64-bit ticks, tickless idle | Accepted |
 | [0009](0009-ecosystem-interoperability.md) | Reuse the Rust embedded ecosystem; build no alternatives | Accepted |
-| [0010](0010-unsafe-code-policy.md) | Every `unsafe` block is documented and inventoried | Accepted |
+| [0010](0010-unsafe-code-policy.md) | Every `unsafe` block is documented and inventoried | Accepted · rule 5 superseded by ADR-0013 |
 | [0011](0011-toolchain-and-msrv-policy.md) | Pinned toolchain, declared MSRV, reviewed bumps | Accepted |
 | [0012](0012-licensing.md) | Dual MIT OR Apache-2.0 | Accepted |
+| [0013](0013-single-maintainer-unsafe-review.md) | Record unsafe review controls during single-maintainer development | Accepted |
 
 ## Template
 

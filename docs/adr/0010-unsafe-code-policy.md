@@ -1,6 +1,6 @@
 # ADR-0010 — Every `unsafe` block is documented, justified, and inventoried
 
-> **Status:** Accepted · **Checkpoint:** 0
+> **Status:** Accepted · rule 5 superseded by ADR-0013 · **Checkpoint:** 0
 
 ## Context
 

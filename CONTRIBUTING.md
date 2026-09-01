@@ -120,8 +120,11 @@ this shape prevents.
   `chore:`.
 - Explain **why** in the body. The diff shows what.
 - One logical change per PR.
-- If it touches `unsafe` in `malleusrt` or an arch crate, it needs **two
-  reviewers**.
+- Changes touching `unsafe` in `malleusrt` or an arch crate follow
+  [ADR-0010](docs/adr/0010-unsafe-code-policy.md).
+  [ADR-0013](docs/adr/0013-single-maintainer-unsafe-review.md) requires a public
+  per-block invariant checklist and negative-test evidence while there is one
+  maintainer. Two reviewers are required when a second maintainer joins.
 - If it contradicts an ADR, either it is wrong or the ADR is. Say which in the
   description — do not leave the contradiction for a reviewer to discover.
 

@@ -108,8 +108,13 @@ the kernel does not.
 
 The kernel is trusted. A vulnerability in it compromises everything, because
 there is no containment above it. This is why the kernel is deliberately small,
-why every `unsafe` block is documented, and why kernel changes need two
-reviewers ([ADR-0010](../adr/0010-unsafe-code-policy.md)).
+why every `unsafe` block is documented, and why unsafe review must expose its
+invariants and evidence. [ADR-0013](../adr/0013-single-maintainer-unsafe-review.md)
+requires public per-block checklists and negative-test evidence during
+single-maintainer development. This does not provide independent review:
+shared reasoning errors remain a risk. Two reviewers are required when a second
+maintainer joins. Other [ADR-0010](../adr/0010-unsafe-code-policy.md) controls
+remain unchanged.
 
 ### 4.4 Supply-chain attacks
 
@@ -144,7 +149,7 @@ Modbus secure, because nothing can.
 
 | Risk | Why it remains | Mitigation |
 |---|---|---|
-| Kernel vulnerability | No containment above the kernel | Small kernel, documented `unsafe`, two-reviewer policy, fuzzing |
+| Kernel vulnerability | No containment above the kernel | Small kernel, documented `unsafe`, public per-block invariant checklists and negative-test evidence required by [ADR-0013](../adr/0013-single-maintainer-unsafe-review.md) while there is one maintainer; two reviewers when a second maintainer joins, fuzzing |
 | MPU misconfiguration | A wrong region means a fault that *does not happen* — silent | Build-time region allocation; `ARCH-MPU-*` tested on hardware; layout report reviewed |
 | Capability over-granting | Human decision | Generated architecture docs make the grant visible in review |
 | DMA outside regions | Depends on correct MPU/peripheral setup | `ARCH-MPU-003` tested explicitly on hardware |
