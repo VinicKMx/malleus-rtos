@@ -431,6 +431,28 @@ mod tests {
     }
 
     #[test]
+    fn invalid_frames_are_rejected_before_memory_access() {
+        let words = [0u32; 26];
+        for exc_return in [
+            EXC_RETURN_HANDLER_MSP_BASIC,
+            EXC_RETURN_THREAD_MSP_BASIC,
+            EXC_RETURN_THREAD_PSP_BASIC,
+            EXC_RETURN_HANDLER_MSP_EXTENDED,
+            EXC_RETURN_THREAD_MSP_EXTENDED,
+            EXC_RETURN_THREAD_PSP_EXTENDED,
+        ] {
+            for bit in [3, 4, 5, 11, 12, 13] {
+                assert!(read_exception_frame(words.as_ptr(), exc_return, 1 << bit).is_none());
+            }
+            let misaligned = words.as_ptr().cast::<u8>().wrapping_add(1).cast::<u32>();
+            assert!(read_exception_frame(misaligned, exc_return, 0).is_none());
+        }
+        for exc_return in [0, 0xffff_ffff] {
+            assert!(read_exception_frame(words.as_ptr(), exc_return, 0).is_none());
+        }
+    }
+
+    #[test]
     fn debugger_evidence_layout_is_stable_for_the_bootstrap_contract() {
         assert_eq!(core::mem::size_of::<ExceptionFrame>(), 8 * 4);
         assert_eq!(core::mem::size_of::<FaultEvidence>(), 19 * 4);
