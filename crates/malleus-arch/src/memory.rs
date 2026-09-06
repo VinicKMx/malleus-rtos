@@ -166,3 +166,30 @@ unsafe impl MemoryProtection for NoProtection {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn no_protection_rejects_regions_instead_of_claiming_isolation() {
+        let storage = [0u8; 32];
+        let region = Region {
+            base: storage.as_ptr() as usize,
+            size: storage.len(),
+            permissions: Permissions::RW,
+        };
+        // SAFETY: the test owns the live storage described by the region and
+        // grants no access to memory outside it. NoProtection does not touch
+        // hardware or dereference the region; both slices live through calls.
+        let (empty, nonempty) = unsafe {
+            (
+                NoProtection::install(&[]),
+                NoProtection::install(core::slice::from_ref(&region)),
+            )
+        };
+        assert_eq!(NoProtection::REGION_COUNT, 0);
+        assert_eq!(empty, Ok(()));
+        assert_eq!(nonempty, Err(ArchError::UnsupportedRegion));
+    }
+}
