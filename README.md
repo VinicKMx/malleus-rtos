@@ -8,7 +8,7 @@ Deterministic hard real-time tasks and `async` connectivity in one firmware imag
 with hardware-enforced fault isolation, timing contracts checked at build time,
 and post-mortem diagnostics you can read from the field.
 
-[![status](https://img.shields.io/badge/status-checkpoint%200%20%C2%B7%20pre--alpha-orange)](#what-is-built)
+[![status](https://img.shields.io/badge/status-checkpoint%201%20%C2%B7%20bring--up-orange)](#what-is-built)
 [![license](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](#license)
 [![rust](https://img.shields.io/badge/rust-1.90%2B-b7410e)](docs/adr/0011-toolchain-and-msrv-policy.md)
 
@@ -22,12 +22,12 @@ and post-mortem diagnostics you can read from the field.
 ---
 
 > [!WARNING]
-> **Malleus RTOS does not run yet.** This is Checkpoint 0: the architecture is
-> designed, the contracts are written, and the build-time analysis works. The
-> kernel does not boot on hardware. Nothing here is usable in a product, and the
-> roadmap says exactly when each piece arrives. If you need a working Rust RTOS
-> today, use [Embassy](https://embassy.dev), [RTIC](https://rtic.rs), or
-> [Zephyr](https://zephyrproject.org) — all excellent, all shipping.
+> **Malleus RTOS is not a usable application runtime yet.** Checkpoint 1
+> bring-up has reached physical reset, memory initialization, and terminal
+> UsageFault/HardFault capture on a Nucleo-F767ZI. This is not a supported port:
+> there is no scheduler, and the remaining hardware conformance is unverified.
+> Nothing here is ready for a product. The design documents describe the
+> intended platform; the implemented status is listed below.
 >
 > What *does* work today: `cargo malleus check` and `cargo malleus analyze`.
 > They need no hardware and no kernel. Try them below.
@@ -187,15 +187,26 @@ about it; that last part is enforced by a test, not by good intentions.
 
 | Component | Status |
 |---|---|
-| Architecture contract (`malleus-arch`) | Defined, with an 18-item conformance suite |
+| Architecture contract (`malleus-arch`) | Defined, with an 18-item conformance checklist |
 | Manifest schema, parser, validator | **Working** — 26 diagnostic classes |
 | Response-time analyser | **Working** — exact, with pinned reference numbers |
 | `cargo malleus check` / `analyze` | **Working** |
 | MalleusRT kernel | Types and contracts only — no scheduler yet |
-| Cortex-M7 port | Not started — Checkpoint 1 |
+| Cortex-M7 port | **Bring-up in progress** — reset and terminal fault capture observed on hardware; not supported |
 
-73 tests, `clippy -D warnings` clean, cross-compiles for `thumbv7em-none-eabihf`
-and `thumbv8m.main-none-eabihf`.
+As verified on 2026-09-11 with Rust 1.95.0, `cargo xtask ci` passes 91 host
+tests with all features and Clippy with warnings denied. The root bare-metal
+crates cross-compile for `thumbv7em-none-eabihf` and `thumbv8m.main-none-eabihf`;
+these builds do not establish hardware support. Both Nucleo-F767ZI release
+probe variants also build and pass board Clippy.
+
+Physical observations cover `.data`/`.bss` restoration after reset and deliberate
+UsageFault/HardFault capture on MB1137 Rev B. See the
+[board procedure](boards/nucleo-f767zi/README.md) and public
+[Cortex-M unsafe evidence](docs/internals/unsafe-review/malleus-arch-cortex-m.md).
+Extended-frame decoding is host-tested; physical FPU validation remains pending.
+The retrospective unsafe records retain explicit evidence limitations pending
+maintainer disposition.
 
 ## Where to read next
 
