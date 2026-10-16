@@ -3,6 +3,16 @@
 use std::path::Path;
 
 fn main() {
+    let probes = [
+        "CARGO_FEATURE_HARDFAULT_ESCALATION_PROBE",
+        "CARGO_FEATURE_BUSFAULT_READ_PROBE",
+    ];
+    let selected = probes
+        .iter()
+        .filter(|name| std::env::var_os(name).is_some())
+        .count();
+    assert!(selected <= 1, "select at most one diagnostic probe feature");
+
     let linker_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("linker");
 
     println!("cargo:rustc-link-search={}", linker_dir.display());

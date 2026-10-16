@@ -204,6 +204,22 @@ fn configure_probe_fault() {
 pub(crate) fn run_bootstrap_probe() -> ! {
     configure_probe_fault();
 
+    if cfg!(feature = "bootstrap-busfault-read") {
+        // SAFETY: this opt-in board probe deliberately reads the fixed reserved
+        // address 0x30000000 (RM0410 Rev 5, section 2.2.2, figure 2). Assembly,
+        // not a Rust reference/load, performs the access. Installed fault
+        // vectors are terminal. The fallback UDF identifies a missing bus fault;
+        // neither instruction returns or touches the software stack.
+        unsafe {
+            asm!(
+                "ldr r0, [r0]",
+                "udf #1",
+                in("r0") 0x3000_0000u32,
+                options(noreturn, nostack)
+            )
+        }
+    }
+
     // SAFETY: UDF intentionally transfers control to UsageFault, or to
     // HardFault when escalation is selected. Both vectors are installed and
     // terminal; execution can never resume past this instruction.

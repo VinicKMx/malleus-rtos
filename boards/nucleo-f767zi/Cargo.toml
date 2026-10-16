@@ -14,6 +14,7 @@ resolver = "3"
 [features]
 default = []
 hardfault-escalation-probe = ["malleus-arch-cortex-m/bootstrap-hardfault-escalation"]
+busfault-read-probe = ["malleus-arch-cortex-m/bootstrap-busfault-read"]
 
 [dependencies]
 malleus-arch-cortex-m = { path = "../../crates/malleus-arch-cortex-m", features = ["bootstrap-fault-probe", "cortex-m7"] }
