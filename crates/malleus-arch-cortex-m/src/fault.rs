@@ -12,7 +12,7 @@ use core::{
     sync::atomic::{Ordering, compiler_fence},
 };
 
-#[cfg(target_arch = "arm")]
+#[cfg(all(target_arch = "arm", not(feature = "bootstrap-prearm-fault")))]
 const CAPTURE_ARMED: u32 = 0x4152_4d44;
 #[cfg(target_arch = "arm")]
 const CAPTURE_COMPLETE: u32 = 0x444f_4e45;
@@ -173,14 +173,21 @@ fn read_exception_frame(
     Some((frame, layout_flags | FRAME_VALID))
 }
 
-#[cfg(target_arch = "arm")]
+#[cfg(all(target_arch = "arm", not(feature = "bootstrap-prearm-fault")))]
 pub(crate) fn arm_capture() {
     // SAFETY: reset initialized this aligned `.uninit` word before RAM setup.
     // This single-core write transfers ownership to the exception assembly.
+    // The opt-in reentrant probe instead seeds CAPT to test guard rejection;
+    // it does not create an actual nested fault or enter Rust capture twice.
+    let state = if cfg!(feature = "bootstrap-reentrant-fault") {
+        0x4341_5054
+    } else {
+        CAPTURE_ARMED
+    };
     unsafe {
         (&raw mut crate::startup::MALLEUS_FAULT_CAPTURE_STATE)
             .cast::<u32>()
-            .write_volatile(CAPTURE_ARMED);
+            .write_volatile(state);
     }
 }
 

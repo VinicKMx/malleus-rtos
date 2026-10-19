@@ -68,7 +68,19 @@ unsafe extern "C" fn __malleus_start() -> ! {
     // the `.uninit` word is aligned, valid, and exclusively owned here.
     unsafe { (&raw mut MALLEUS_BOOT_EVIDENCE).write_volatile(evidence) };
 
-    #[cfg(all(feature = "cortex-m7", target_arch = "arm"))]
+    // The pre-arm probe has valid Rust RAM but deliberately retains RST0.
+    #[cfg(all(
+        feature = "cortex-m7",
+        feature = "bootstrap-prearm-fault",
+        target_arch = "arm"
+    ))]
+    crate::fault::run_bootstrap_probe();
+
+    #[cfg(all(
+        feature = "cortex-m7",
+        not(feature = "bootstrap-prearm-fault"),
+        target_arch = "arm"
+    ))]
     crate::fault::arm_capture();
 
     #[cfg(all(

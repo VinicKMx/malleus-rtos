@@ -6,6 +6,8 @@ fn main() {
     let probes = [
         "CARGO_FEATURE_HARDFAULT_ESCALATION_PROBE",
         "CARGO_FEATURE_BUSFAULT_READ_PROBE",
+        "CARGO_FEATURE_PREARM_FAULT_PROBE",
+        "CARGO_FEATURE_REENTRANT_FAULT_PROBE",
     ];
     let selected = probes
         .iter()
