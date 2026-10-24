@@ -8,6 +8,7 @@ fn main() {
         "CARGO_FEATURE_BUSFAULT_READ_PROBE",
         "CARGO_FEATURE_PREARM_FAULT_PROBE",
         "CARGO_FEATURE_REENTRANT_FAULT_PROBE",
+        "CARGO_FEATURE_STARTUP_DATA_FAILURE_PROBE",
     ];
     let selected = probes
         .iter()

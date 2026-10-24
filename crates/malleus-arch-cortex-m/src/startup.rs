@@ -49,6 +49,14 @@ pub(crate) static mut MALLEUS_FAULT_CAPTURE_STATE: MaybeUninit<u32> = MaybeUnini
 #[doc(hidden)]
 #[unsafe(no_mangle)]
 unsafe extern "C" fn __malleus_start() -> ! {
+    #[cfg(all(target_arch = "arm", feature = "bootstrap-data-failure"))]
+    // SAFETY: Reset already initialized this aligned, exclusively owned u32.
+    // The opt-in probe changes only its value, not RAM validity or the startup
+    // caller contract. Zero deliberately exercises the existing DATA diagnostic.
+    unsafe {
+        (&raw mut DATA_SENTINEL).write_volatile(0);
+    }
+
     // SAFETY: the reset stub completed `.data` initialization before this
     // function was called; volatile access makes the hardware observation
     // explicit and prevents constant-folding the probe away.
