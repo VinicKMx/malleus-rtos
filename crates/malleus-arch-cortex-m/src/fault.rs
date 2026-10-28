@@ -301,6 +301,13 @@ unsafe extern "C" fn __malleus_fault_capture(
     unsafe {
         let evidence_pointer = (&raw mut MALLEUS_FAULT_EVIDENCE).cast::<FaultEvidence>();
         evidence_pointer.write_volatile(evidence);
+        if cfg!(feature = "bootstrap-interrupted-capture") {
+            // SAFETY: the opt-in probe interrupts publication with an intentional
+            // UDF while UsageFault is active and PRIMASK is set. It escalates to
+            // the installed HardFault entry on a healthy MSP; CAPT rejects Rust
+            // reentry. The aggregate remains invalid without magic and DONE.
+            asm!("udf #2", options(noreturn, nomem, nostack));
+        }
         evidence_pointer
             .cast::<u32>()
             .write_volatile(EVIDENCE_MAGIC);
