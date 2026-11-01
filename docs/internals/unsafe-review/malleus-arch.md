@@ -2,8 +2,8 @@
 
 **Policy:** [ADR-0010](../../adr/0010-unsafe-code-policy.md) and
 [ADR-0013](../../adr/0013-single-maintainer-unsafe-review.md).
-**Date:** 2026-09-08. **Reviewing maintainer:** Vinicius Pedrosa;
-explicit dispositions remain pending as listed below.
+**Date:** 2026-11-01. **Reviewing maintainer:** Vinicius Pedrosa;
+the two limitations below were explicitly accepted on 2026-11-01.
 **Reviewed source revision:** `6abbcc4`.
 
 ## Inventory and provenance
@@ -31,7 +31,7 @@ abstract declaration; it is not an exemption for future implementations.
 |---|---|---|---|
 | Register/stack layout describes live task-owned state; Send must remain sound | Port implementor; context/stack owner | Dangling, aliased or misdecoded task state | FACT: # Safety contract only; no Context implementation exists here. ARCH-P1. |
 
-**Negative evidence and limits:** NOT TESTABLE as runtime behavior of this declaration alone: it has no executable body/port here. Source contract and caller/implementor owners are recorded; disposition ARCH-P1 is pending.
+**Negative evidence and limits:** NOT TESTABLE as runtime behavior of this declaration alone: it has no executable body/port here. Source contract and caller/implementor owners are recorded; disposition ARCH-P1 was accepted on 2026-11-01.
 
 ## ARCH-02 — Context::initialise
 
@@ -42,7 +42,7 @@ abstract declaration; it is not an exemption for future implementations.
 |---|---|---|---|
 | Exclusive static stack lifetime, ABI alignment and minimum frame; valid entry for mode | Caller owns stack; port builds frame | Out-of-bounds initial frame or entry in wrong execution mode | FACT: documented preconditions. No executable implementation; ARCH-P1. |
 
-**Negative evidence and limits:** NOT TESTABLE as runtime behavior of this declaration alone: it has no executable body/port here. Source contract and caller/implementor owners are recorded; disposition ARCH-P1 is pending.
+**Negative evidence and limits:** NOT TESTABLE as runtime behavior of this declaration alone: it has no executable body/port here. Source contract and caller/implementor owners are recorded; disposition ARCH-P1 was accepted on 2026-11-01.
 
 ## ARCH-03 — Context::request_switch
 
@@ -53,7 +53,7 @@ abstract declaration; it is not an exemption for future implementations.
 |---|---|---|---|
 | Both context pointers live and scheduler lock held; switch deferred and bounded | Scheduler caller; port deferred exception implementation | Dangling pointers, concurrent context writes, inline unsafe switch | FACT: documented preconditions/contract. No implementation; ARCH-P1. |
 
-**Negative evidence and limits:** NOT TESTABLE as runtime behavior of this declaration alone: it has no executable body/port here. Source contract and caller/implementor owners are recorded; disposition ARCH-P1 is pending.
+**Negative evidence and limits:** NOT TESTABLE as runtime behavior of this declaration alone: it has no executable body/port here. Source contract and caller/implementor owners are recorded; disposition ARCH-P1 was accepted on 2026-11-01.
 
 ## ARCH-04 — CriticalSection
 
@@ -64,7 +64,7 @@ abstract declaration; it is not an exemption for future implementations.
 |---|---|---|---|
 | Masks nest and restore exact previous state; priority-bounded mask does not block higher urgency | Port implementor; scoped token lifetime | Leaked disable state or priority latency violation | FACT: # Safety and enter/enter_below contracts. No implementation; ARCH-P1. |
 
-**Negative evidence and limits:** NOT TESTABLE as runtime behavior of this declaration alone: it has no executable body/port here. Source contract and caller/implementor owners are recorded; disposition ARCH-P1 is pending.
+**Negative evidence and limits:** NOT TESTABLE as runtime behavior of this declaration alone: it has no executable body/port here. Source contract and caller/implementor owners are recorded; disposition ARCH-P1 was accepted on 2026-11-01.
 
 ## ARCH-05 — Arch
 
@@ -75,7 +75,7 @@ abstract declaration; it is not an exemption for future implementations.
 |---|---|---|---|
 | Associated implementations uphold contracts; real required conformance precedes support claim | Port implementor; maintainer publishing support | Unsound switch/protection implementation called supported | FACT: trait documentation and associated bounds. No Arch implementation; ARCH-P1. |
 
-**Negative evidence and limits:** NOT TESTABLE as runtime behavior of this declaration alone: it has no executable body/port here. Source contract and caller/implementor owners are recorded; disposition ARCH-P1 is pending.
+**Negative evidence and limits:** NOT TESTABLE as runtime behavior of this declaration alone: it has no executable body/port here. Source contract and caller/implementor owners are recorded; disposition ARCH-P1 was accepted on 2026-11-01.
 
 ## ARCH-06 — MemoryProtection
 
@@ -86,7 +86,7 @@ abstract declaration; it is not an exemption for future implementations.
 |---|---|---|---|
 | Correct region replacement, no stale grants and true hardware conformance | Port implementor; region allocator/caller entitlement | Silent isolation bypass | FACT: contract only for protected ports; NoProtection separately recorded. ARCH-P1. |
 
-**Negative evidence and limits:** NOT TESTABLE as runtime behavior of this declaration alone: it has no executable body/port here. Source contract and caller/implementor owners are recorded; disposition ARCH-P1 is pending.
+**Negative evidence and limits:** NOT TESTABLE as runtime behavior of this declaration alone: it has no executable body/port here. Source contract and caller/implementor owners are recorded; disposition ARCH-P1 was accepted on 2026-11-01.
 
 ## ARCH-07 — MemoryProtection::enable
 
@@ -97,7 +97,7 @@ abstract declaration; it is not an exemption for future implementations.
 |---|---|---|---|
 | Programmed regions cover kernel before enable | Caller configures complete regions; port enables unit | Kernel access faults or invalid protection state | FACT: abstract method # Safety. Protected implementation absent; ARCH-P1. |
 
-**Negative evidence and limits:** NOT TESTABLE as runtime behavior of this declaration alone: it has no executable body/port here. Source contract and caller/implementor owners are recorded; disposition ARCH-P1 is pending.
+**Negative evidence and limits:** NOT TESTABLE as runtime behavior of this declaration alone: it has no executable body/port here. Source contract and caller/implementor owners are recorded; disposition ARCH-P1 was accepted on 2026-11-01.
 
 ## ARCH-08 — MemoryProtection::disable
 
@@ -108,7 +108,7 @@ abstract declaration; it is not an exemption for future implementations.
 |---|---|---|---|
 | Re-enable protection before any return to unprivileged execution | Fault handler/caller; port register writer | Execution continues without containment | FACT: abstract method # Safety. No protected implementation; ARCH-P1. |
 
-**Negative evidence and limits:** NOT TESTABLE as runtime behavior of this declaration alone: it has no executable body/port here. Source contract and caller/implementor owners are recorded; disposition ARCH-P1 is pending.
+**Negative evidence and limits:** NOT TESTABLE as runtime behavior of this declaration alone: it has no executable body/port here. Source contract and caller/implementor owners are recorded; disposition ARCH-P1 was accepted on 2026-11-01.
 
 ## ARCH-09 — MemoryProtection::install
 
@@ -119,7 +119,7 @@ abstract declaration; it is not an exemption for future implementations.
 |---|---|---|---|
 | Regions belong to incoming task; valid count/alignment/size; replace complete set | Caller capability policy; port validator | Over-grant or stale previous grants | FACT: documented authorization/error contract; no protected implementation. HOST-NP tests only NoProtection rejection; ARCH-P1. |
 
-**Negative evidence and limits:** NOT TESTABLE as runtime behavior of this declaration alone: it has no executable body/port here. Source contract and caller/implementor owners are recorded; disposition ARCH-P1 is pending.
+**Negative evidence and limits:** NOT TESTABLE as runtime behavior of this declaration alone: it has no executable body/port here. Source contract and caller/implementor owners are recorded; disposition ARCH-P1 was accepted on 2026-11-01.
 
 ## ARCH-10 — unsafe impl MemoryProtection for NoProtection
 
@@ -176,7 +176,7 @@ abstract declaration; it is not an exemption for future implementations.
 |---|---|---|---|
 | Time monotonic across ISR/concurrency/idle; alarm not lost; bounded operations | Port implementor and hardware timer | Time reversal, lost wake-up or unbounded ISR work | FACT: documented # Safety and methods. No timer implementation; ARCH-P1. |
 
-**Negative evidence and limits:** NOT TESTABLE as runtime behavior of this declaration alone: it has no executable body/port here. Source contract and caller/implementor owners are recorded; disposition ARCH-P1 is pending.
+**Negative evidence and limits:** NOT TESTABLE as runtime behavior of this declaration alone: it has no executable body/port here. Source contract and caller/implementor owners are recorded; disposition ARCH-P1 was accepted on 2026-11-01.
 
 ## ARCH-15 — tests::no_protection_rejects_regions_instead_of_claiming_isolation — unsafe calls
 
@@ -229,16 +229,17 @@ crates/malleus-arch` and `git blame -l` on the source locators above. All 14
 legacy construct declaration lines map to `eb1bbd3`; ARCH-15 maps to `6abbcc4`.
 This record does not attribute a later test to the introducing C0 commit.
 
-## Outstanding dispositions
+## Maintainer dispositions — 2026-11-01
 
-Both items are **PENDING MAINTAINER DISPOSITION**. No second review is being
-requested in place of the accepted policy; the missing gate is explicit
-disposition of these evidence limitations.
+Both dispositions below were explicitly **ACCEPTED** by the maintainer.
+Acceptance records the evidence limits; it does not assert physical behavior
+for unimplemented contracts or substitute a hardware port.
 
-| ID | Evidence state and limitation | Proposed disposition |
-|---|---|---|
-| ARCH-P1 | NOT TESTABLE: runtime behavior of abstract declarations without implementations. Applies to ARCH-01..09 and ARCH-14. Deliberately violating raw-pointer/stack preconditions is not a valid Rust test and can invoke UB. Conformance metadata is not execution. | Accept declaration-only contract/ownership review for C0, require each future concrete implementation to supply its own negative and hardware evidence before support. This proposal is pending approval; no future implementation is added here. |
-| ARCH-P2 | NOT PERFORMED: method-specific negative coverage for no-op enable/disable (ARCH-11/12), and end-to-end board/analyser tier-0 policy coupling (ARCH-10). Empty method source has no hardware operation; HOST-NP demonstrates rejection, not all surrounding policy. | Consider accepting direct source inspection of empty methods plus HOST-NP for this minimal type; retain separate enforcement obligations for tooling/integrators. Acceptance is pending, not implied by a passing test. |
+| ID | Accepted disposition and retained obligation |
+|---|---|
+| ARCH-P1 | ACCEPTED: declarative review of the C0 abstract contracts (ARCH-01..09 and ARCH-14). Runtime behavior of declarations without implementations remains NOT TESTABLE in this scope. Every future concrete implementation must bring its own negative-test and hardware evidence before support is declared. Deliberately invoking UB is not an acceptable test. |
+| ARCH-P2 | ACCEPTED: direct inspection of the empty NoProtection methods plus HOST-NP. Method-specific side-effect experiments and end-to-end tooling/integrator tier-0 enforcement are not demonstrated here. Those enforcement obligations remain with the tooling/integrator; acceptance does not imply physical isolation. |
 
-No new hardware behavior is claimed for C0. In particular this record does not
-implement or validate critical sections, time, context switching or protection.
+The C0 retrospective limitations are regularized under these dispositions.
+No new hardware behavior is claimed for C0. This record does not implement or
+validate critical sections, time, context switching or protection.
