@@ -187,6 +187,45 @@ vectors, the shared entry, a 76-byte evidence object, and an 84-byte total
 `.uninit` allocation. Host tests cover every accepted `EXC_RETURN` layout, all
 six frame-rejection status bits, and the fixed evidence offsets.
 
-Physical observation of the configurable UsageFault and escalated HardFault is
-not yet recorded because no debug probe was connected during this validation.
-Consequently, C1.P1.3 and the C1.P1 phase are not represented as closed.
+The August validation did not record physical faults because no probe was
+connected. On 2026-09-03, the configurable UsageFault and escalated HardFault
+were observed after physical resets on MB1137 Rev B using the corrected
+`ea5cb1d` images. The public [unsafe evidence record](../../docs/internals/unsafe-review/malleus-arch-cortex-m.md)
+contains the hashes, commands, raw reads and remaining limitations. Physical
+observation does not by itself close the phase or declare the port supported.
+
+## Additional diagnostic probes
+
+The following optional board features were exercised on 2026-11-02 from
+`f6f1b2a`. Select exactly one, for example:
+
+```bash
+cargo build --release \
+  --manifest-path boards/nucleo-f767zi/Cargo.toml \
+  --target thumbv7em-none-eabihf \
+  --features busfault-read-probe
+```
+
+| Feature | Observed diagnostic and scope |
+|---|---|
+| `busfault-read-probe` | Precise read BusFault at reserved address `0x30000000`, valid BFAR and PC at the load |
+| `prearm-fault-probe` | Assembly guard rejects RST0 with valid RAM; not a fault during Reset |
+| `reentrant-fault-probe` | Guard rejects deliberately seeded CAPT; not an actual nested fault |
+| `startup-data-failure-probe` | DATA diagnostic after changing the initialized sentinel; not an actual .data copy failure |
+| `interrupted-capture-probe` | HardFault interrupts UsageFault publication on healthy MSP; magic remains zero and DONE is absent |
+
+These features and `hardfault-escalation-probe` are mutually exclusive in the
+board build script, so board `--all-features` is intentionally invalid. Build
+and run Clippy separately for each selected feature. Direct architecture-crate
+consumers do not have that exclusion gate; combinations there are not covered
+by these observations.
+
+Each experiment used a verified named image, poisoned boot/state/evidence,
+DEMCR cleared as the last debug operation, then a maintainer-confirmed physical
+RESET before any observation. No debugger reset counted as boot evidence. The
+[evidence record](../../docs/internals/unsafe-review/malleus-arch-cortex-m.md)
+publishes all five hashes and raw results, including the stores before the
+interrupted-publication UDF. These terminal probes remain unsuitable as an
+application runtime. MMFAR-valid access and NMI interleavings remain untested;
+explicit maintainer dispositions for the residual CM-P1/CM-P2 coverage are
+still pending.
