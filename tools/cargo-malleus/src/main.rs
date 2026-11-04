@@ -74,15 +74,10 @@ impl Command {
         match self {
             Self::Check { .. } | Self::Analyze { .. } => None,
             Self::New { .. } | Self::Build | Self::Flash | Self::Test => {
-                Some(("2", "docs/ROADMAP.md#checkpoint-2--make-it-usable"))
+                Some(("2", "README.md#what-is-built"))
             }
-            Self::Dump | Self::Expand => Some((
-                "3",
-                "docs/ROADMAP.md#checkpoint-3--build-the-differentiator",
-            )),
-            Self::Inspect | Self::Trace => {
-                Some(("4", "docs/ROADMAP.md#checkpoint-4--production-platform"))
-            }
+            Self::Dump | Self::Expand => Some(("3", "README.md#what-is-built")),
+            Self::Inspect | Self::Trace => Some(("4", "README.md#what-is-built")),
         }
     }
 }
@@ -114,7 +109,7 @@ fn run(command: &Command) -> Result<ExitCode> {
         eprintln!(
             "This command is not implemented yet. It is delivered by Checkpoint {checkpoint}.\n\
              \n\
-             Malleus RTOS is early, and the roadmap is public precisely so that what is and\n\
+             Malleus RTOS is early. The public implementation status makes what is and\n\
              is not built is never a surprise:\n\
              \n    {link}\n\
              \n\
@@ -192,8 +187,8 @@ mod tests {
                 .expect("unimplemented commands must state a checkpoint");
             assert!(!checkpoint.is_empty());
             assert!(
-                link.starts_with("docs/ROADMAP.md#"),
-                "link must point at the roadmap"
+                link == "README.md#what-is-built",
+                "link must point at public implementation status"
             );
         }
     }
