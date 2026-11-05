@@ -194,7 +194,7 @@ about it; that last part is enforced by a test, not by good intentions.
 | MalleusRT kernel | Types and contracts only — no scheduler yet |
 | Cortex-M7 port | **Bring-up in progress** — reset and terminal fault capture observed on hardware; not supported |
 
-As verified on 2026-09-11 with Rust 1.95.0, `cargo xtask ci` passes 91 host
+As verified on 2026-11-04 with Rust 1.95.0, `cargo xtask ci` passes 91 host
 tests with all features and Clippy with warnings denied. The root bare-metal
 crates cross-compile for `thumbv7em-none-eabihf` and `thumbv8m.main-none-eabihf`;
 these builds do not establish hardware support. Both Nucleo-F767ZI release
@@ -205,8 +205,9 @@ UsageFault/HardFault capture on MB1137 Rev B. See the
 [board procedure](boards/nucleo-f767zi/README.md) and public
 [Cortex-M unsafe evidence](docs/internals/unsafe-review/malleus-arch-cortex-m.md).
 Extended-frame decoding is host-tested; physical FPU validation remains pending.
-The retrospective unsafe records retain explicit evidence limitations pending
-maintainer disposition.
+The retrospective unsafe records retain explicit diagnostic limitations accepted
+by the maintainer. The P1 bootstrap review is complete; this does not establish
+port support or satisfy the inherited physical FPU/PSP, MPU and NMI criteria.
 
 ## Where to read next
 

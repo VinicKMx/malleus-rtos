@@ -227,5 +227,8 @@ RESET before any observation. No debugger reset counted as boot evidence. The
 publishes all five hashes and raw results, including the stores before the
 interrupted-publication UDF. These terminal probes remain unsuitable as an
 application runtime. MMFAR-valid access and NMI interleavings remain untested;
-explicit maintainer dispositions for the residual CM-P1/CM-P2 coverage are
-still pending.
+the maintainer accepted the residual diagnostic limits for P1. Installing the
+NMI vector and observing publication interruption by NMI, plus valid
+MMFAR/DACCVIOL capture, remain mandatory C1.P4 exit criteria. The P1 bootstrap
+review is complete, with physical extended/FPU and PSP validation required in
+C1.P2 before those capabilities can be considered verified.
